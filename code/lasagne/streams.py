@@ -46,22 +46,14 @@ class RandomPatch(DataStreamWrapper):
 
         assert X_batch.shape[0] == y_batch.shape[0]
 
-        #print "L_X_batch[0].shape"
-        #print L_X_batch[0].shape
-        #print "L_y_batch[0].shape"
-        #print L_y_batch[0].shape
+        # print "X_batch.shape"
+        # print X_batch.shape
+        # print "y_batch.shape"
+        # print y_batch.shape
 
-        #X_batch = np.vstack(L_X_batch)
-        #y_batch = np.vstack(L_y_batch)
-
-        #print "X_batch"
-        #print X_batch
-        #print "y_batch"
-        #print y_batch
-
-        print "X_batch.shape"
-        print X_batch.shape
-        print "y_batch.shape"
-        print y_batch.shape
+        # X_batch.shape
+        # (10, 3, 32, 32)
+        # y_batch.shape
+        # (10,)
 
         return (X_batch, y_batch)

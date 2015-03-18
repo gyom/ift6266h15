@@ -17,7 +17,7 @@ class DogsVsCats(InMemoryDataset):
 
         # flip this switch to debug your algorithms faster
         # by using less data
-        want_truncated_version = True
+        want_truncated_version = False
 
         if want_truncated_version:
             if which_set == 'train':

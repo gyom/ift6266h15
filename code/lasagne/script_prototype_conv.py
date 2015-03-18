@@ -12,6 +12,7 @@ import os
 import sys
 import numpy as np
 import lasagne
+#from lasagne.layers import dnn  # fails early if not available
 import theano
 import theano.tensor as T
 import time
@@ -21,10 +22,11 @@ from streams import RandomPatch
 from fuel.streams import DataStream
 from fuel.schemes import SequentialScheme, ShuffledScheme
 
-NUM_EPOCHS = 10
-BATCH_SIZE = 32
-NUM_HIDDEN_UNITS = 32
-LEARNING_RATE = 0.01
+NUM_EPOCHS = 100
+BATCH_SIZE = 256
+#L_NUM_FILTERS = [32, 32, 32]
+#L_NUM_HIDDEN_UNITS = [32, 32, 32]
+LEARNING_RATE = 0.001
 MOMENTUM = 0.9
 
 RANDOM_PATCH_H = 128
@@ -37,18 +39,21 @@ def load_data():
     # TODO : Figure out if there isn't something better to do
     # than to use `270` as the scale value for RandomPatch.
 
+    # TODO : What's up with iteration_scheme=ShuffledScheme(200, 10) ?
+    #        Is it of any use ? Does it limit the number of examples seen to 200 ?
+
     train_dataset = DogsVsCats('train') 
     train_num_examples = train_dataset.num_examples
 
     #train_stream = DataStream(train_dataset, iteration_scheme=ShuffledScheme(200, 10))
-    train_stream = RandomPatch(DataStream(train_dataset, iteration_scheme=ShuffledScheme(200, 10)),
+    train_stream = RandomPatch(DataStream(train_dataset),
                                270, (RANDOM_PATCH_H, RANDOM_PATCH_W))
 
     valid_dataset = DogsVsCats('valid')
     valid_num_examples = valid_dataset.num_examples
 
     #valid_stream = DataStream(valid_dataset, iteration_scheme=ShuffledScheme(100, 10))
-    valid_stream = RandomPatch(DataStream(valid_dataset, iteration_scheme=ShuffledScheme(100, 10)),
+    valid_stream = RandomPatch(DataStream(valid_dataset),
                                270, (RANDOM_PATCH_H, RANDOM_PATCH_W))
 
     #test_stream = DataStream(DogsVsCats('test'), iteration_scheme=ShuffledScheme(100, 10))
@@ -61,40 +66,97 @@ def load_data():
         #test_stream=test_stream,
         train_num_examples=train_num_examples,
         valid_num_examples=valid_num_examples,
-        input_dim=3*RANDOM_PATCH_H*RANDOM_PATCH_W,
+        input_shape=(3, RANDOM_PATCH_H, RANDOM_PATCH_W),
         output_dim=2
         )
 
 
-def build_model(input_dim, output_dim,
-                batch_size=BATCH_SIZE, num_hidden_units=NUM_HIDDEN_UNITS):
+def build_model(input_shape, output_dim,
+                batch_size=BATCH_SIZE):
+
+    # input_shape is (3, input_width, input_height)
 
     # This function is just a placeholder.
     # Put whatever you want here instead.
     # For now we just want anything that can be trained
     # to try out the interface between all the components.
     
+    ###
+    # Convolutional part
+    ###
     l_in = lasagne.layers.InputLayer(
-        shape=(batch_size, input_dim),
-    )
-    l_flattened_in = lasagne.layers.ReshapeLayer(l_in, ([0], input_dim))
-    l_hidden1 = lasagne.layers.DenseLayer(
-        l_flattened_in,
-        num_units=num_hidden_units,
+        shape=tuple([batch_size] + list(input_shape)),
+        )
+
+    l_conv1 = lasagne.layers.Conv2DLayer(
+        l_in,
+        num_filters=32,
+        filter_size=(4, 4),
         nonlinearity=lasagne.nonlinearities.rectify,
+        W=lasagne.init.Uniform(range=0.1),
+        b=lasagne.init.Constant(0),
+        untie_biases=True,
+        )
+    l_pool1 = lasagne.layers.MaxPool2DLayer(l_conv1, ds=(2, 2))
+
+    l_conv2 = lasagne.layers.Conv2DLayer(
+        l_pool1,
+        num_filters=16,
+        filter_size=(4, 4),
+        nonlinearity=lasagne.nonlinearities.rectify,
+        W=lasagne.init.Uniform(range=0.1),
+        b=lasagne.init.Constant(0),
+        untie_biases=True,
+        )
+    l_pool2 = lasagne.layers.MaxPool2DLayer(l_conv2, ds=(2, 2))
+
+    l_conv3 = lasagne.layers.Conv2DLayer(
+        l_pool2,
+        num_filters=16,
+        filter_size=(4, 4),
+        nonlinearity=lasagne.nonlinearities.rectify,
+        W=lasagne.init.Uniform(range=0.1),
+        b=lasagne.init.Constant(0),
+        untie_biases=True,
+        )
+    l_pool3 = lasagne.layers.MaxPool2DLayer(l_conv3, ds=(2, 2))
+
+    l_conv4 = lasagne.layers.Conv2DLayer(
+        l_pool3,
+        num_filters=16,
+        filter_size=(4, 4),
+        nonlinearity=lasagne.nonlinearities.rectify,
+        W=lasagne.init.Uniform(range=0.1),
+        b=lasagne.init.Constant(0),
+        untie_biases=True,
+        )
+    l_pool4 = lasagne.layers.MaxPool2DLayer(l_conv4, ds=(2, 2))
+
+    ###
+    # Fully-connected part
+    ###
+    l_flattened_1 = lasagne.layers.ReshapeLayer(l_pool4, ([0], -1))
+    l_hidden1 = lasagne.layers.DenseLayer(
+        l_flattened_1,
+        num_units=16,
+        nonlinearity=lasagne.nonlinearities.rectify,
+        W=lasagne.init.Uniform(range=1.0),
+        b=lasagne.init.Constant(0),
     )
     l_hidden1_dropout = lasagne.layers.DropoutLayer(
         l_hidden1,
-        p=0.5,
+        p=0.0, # change back to 0.5  
     )
     l_hidden2 = lasagne.layers.DenseLayer(
         l_hidden1_dropout,
-        num_units=num_hidden_units,
+        num_units=16,
         nonlinearity=lasagne.nonlinearities.rectify,
+        W=lasagne.init.Uniform(range=1.0),
+        b=lasagne.init.Constant(0),        
     )
     l_hidden2_dropout = lasagne.layers.DropoutLayer(
         l_hidden2,
-        p=0.5,
+        p=0.0, # change back to 0.5  
     )
     l_out = lasagne.layers.DenseLayer(
         l_hidden2_dropout,
@@ -128,6 +190,12 @@ def create_iter_functions(dataset, output_layer,
     all_params = lasagne.layers.get_all_params(output_layer)
     updates = lasagne.updates.nesterov_momentum(
         loss_train, all_params, learning_rate, momentum)
+    #updates = lasagne.updates.momentum(
+    #    loss_train, all_params, learning_rate, momentum)
+    #updates = lasagne.updates.adadelta(
+    #    loss_train, all_params)
+
+
 
     iter_train = theano.function(
         [X_batch, y_batch], loss_train,
@@ -167,8 +235,6 @@ def train(iter_funcs, dataset, batch_size=BATCH_SIZE):
 
         avg_train_loss = np.mean(batch_train_losses)
 
-        # TODO : Uncomment this.
-        #
         batch_valid_losses = []
         batch_valid_accuracies = []
         for batch_index in range(num_batches_valid):
@@ -197,7 +263,7 @@ def main(num_epochs=NUM_EPOCHS):
 
     print("Building model and compiling functions...")
     output_layer = build_model(
-        input_dim=dataset['input_dim'],
+        input_shape=dataset['input_shape'],
         output_dim=dataset['output_dim'],
     )
     iter_funcs = create_iter_functions(dataset, output_layer, X_tensor_type=theano.tensor.tensor4)
