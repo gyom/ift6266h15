@@ -176,6 +176,9 @@ def create_iter_functions(dataset, output_layer,
     #batch_slice = slice(
     #    batch_index * batch_size, (batch_index + 1) * batch_size)
 
+    # when this is true, it prevents dropout from dropping units
+    deterministic=False
+
     objective = lasagne.objectives.Objective(output_layer,
         loss_function=lasagne.objectives.categorical_crossentropy)
 
@@ -256,6 +259,12 @@ def train(iter_funcs, dataset, batch_size=BATCH_SIZE):
             'valid_accuracy': avg_valid_accuracy,
         }
 
+def save_params(all_params):
+    #all_params = lasagne.layers.get_all_params(output_layer)
+    for param in all_params:
+        print(param)
+    return
+
 
 def main(num_epochs=NUM_EPOCHS):
     print("Loading data...")
@@ -268,6 +277,9 @@ def main(num_epochs=NUM_EPOCHS):
     )
     iter_funcs = create_iter_functions(dataset, output_layer, X_tensor_type=theano.tensor.tensor4)
 
+    # for saving
+    all_params = lasagne.layers.get_all_params(output_layer)
+
     print("Starting training...")
     now = time.time()
     try:
@@ -279,6 +291,8 @@ def main(num_epochs=NUM_EPOCHS):
             print("  validation loss:\t\t{:.6f}".format(epoch['valid_loss']))
             print("  validation accuracy:\t\t{:.2f} %%".format(
                 epoch['valid_accuracy'] * 100))
+
+            save_params(all_params)
 
             if epoch['number'] >= num_epochs:
                 break

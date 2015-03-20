@@ -24,37 +24,20 @@ from fuel.schemes import SequentialScheme, ShuffledScheme
 
 from maractus import Maractus
 
-NUM_EPOCHS = 1000
-BATCH_SIZE = 256
-LEARNING_RATE = 0.0001
-MOMENTUM = 0.1
 
-RANDOM_PATCH_H = 128
-RANDOM_PATCH_W = 128
-
-
-def load_data():
-
-    #(random_patch_h, random_patch_w) = (32, 32)
-    # TODO : Figure out if there isn't something better to do
-    # than to use `270` as the scale value for RandomPatch.
-
-    # TODO : What's up with iteration_scheme=ShuffledScheme(200, 10) ?
-    #        Is it of any use ? Does it limit the number of examples seen to 200 ?
+def load_data(random_patch_h, random_patch_w):
 
     train_dataset = DogsVsCats('train') 
     train_num_examples = train_dataset.num_examples
 
-    #train_stream = DataStream(train_dataset, iteration_scheme=ShuffledScheme(200, 10))
     train_stream = RandomPatch(DataStream(train_dataset),
-                               270, (RANDOM_PATCH_H, RANDOM_PATCH_W))
+                               270, (random_patch_h, random_patch_w))
 
     valid_dataset = DogsVsCats('valid')
     valid_num_examples = valid_dataset.num_examples
 
-    #valid_stream = DataStream(valid_dataset, iteration_scheme=ShuffledScheme(100, 10))
     valid_stream = RandomPatch(DataStream(valid_dataset),
-                               270, (RANDOM_PATCH_H, RANDOM_PATCH_W))
+                               270, (random_patch_h, random_patch_w))
 
     #test_stream = DataStream(DogsVsCats('test'), iteration_scheme=ShuffledScheme(100, 10))
     #train_num_examples = train_stream.num_examples
@@ -66,7 +49,7 @@ def load_data():
         #test_stream=test_stream,
         train_num_examples=train_num_examples,
         valid_num_examples=valid_num_examples,
-        input_shape=(3, RANDOM_PATCH_H, RANDOM_PATCH_W),
+        input_shape=(3, random_patch_h, random_patch_w),
         output_dim=2
         )
 
@@ -75,9 +58,10 @@ def load_data():
 
 
 def create_iter_functions(dataset, output_layer,
-                          X_tensor_type=T.matrix,
-                          batch_size=BATCH_SIZE,
-                          learning_rate=LEARNING_RATE, momentum=MOMENTUM):
+                          X_tensor_type,
+                          batch_size,
+                          learning_rate,
+                          momentum):
     batch_index = T.iscalar('batch_index')
     X_batch = X_tensor_type('x')
     y_batch = T.ivector('y')
@@ -89,6 +73,10 @@ def create_iter_functions(dataset, output_layer,
 
     objective = lasagne.objectives.Objective(output_layer,
         loss_function=lasagne.objectives.categorical_crossentropy)
+
+    # Lasagne obtains lasagne.objectives.categorical_crossentropy
+    # directly from theano.tensor.nnet, so it's probably up to us
+    # to make this more robust numerically.
 
     loss_train = objective.get_loss(X_batch, target=y_batch)
     loss_eval  = objective.get_loss(X_batch, target=y_batch,
@@ -122,7 +110,7 @@ def create_iter_functions(dataset, output_layer,
     )
 
 
-def train(iter_funcs, dataset, batch_size=BATCH_SIZE):
+def train(iter_funcs, dataset, batch_size):
     
     #num_batches_train = dataset['train_stream'].num_examples // batch_size
     #num_batches_valid = dataset['valid_stream'].num_examples // batch_size
@@ -190,32 +178,41 @@ def train(iter_funcs, dataset, batch_size=BATCH_SIZE):
 #        The main concept here is that we're merging phases with different (but compatible) hyper-parameters.
 #
 
-def main(num_epochs=NUM_EPOCHS):
-    print("Loading data...")
-    dataset = load_data()
+def run(learning_rate,
+        momentum,
+        batch_size,
+        num_epochs,
+        maractus_config_json,
+        maractus_params_hdf5_input,
+        maractus_params_hdf5_output_last,
+        maractus_params_hdf5_output_best_valid):
 
-    maractus = Maractus(L_num_filters = [32, 16, 16, 16],
-                        L_filter_size = [(4,4)] * 4,
-                        L_pool_size = [(2,2)] * 4,
-                        L_num_hiddens = [16, 16],
-                        input_shape = dataset['input_shape'], # (3, RANDOM_PATCH_H, RANDOM_PATCH_W),
-                        output_dim = dataset['output_dim'], # 2
-                        dense_dropout_p=0.0)
 
-    print("Building model and compiling functions...")
-    output_layer = maractus.build_model(batch_size=BATCH_SIZE)
-    iter_funcs = create_iter_functions(dataset, output_layer, X_tensor_type=theano.tensor.tensor4)
+    print("Constructing Maractus object ...")
 
-    want_resume = True
-    if want_resume:
-        hdf5_path = "/home/gyomalin/ML/tmp/dogs_vs_cats_01.hdf5"
-        maractus.load_params(hdf5_path)
-        print("Resuming from %s." % hdf5_path)
+    maractus = Maractus.new_from_json_config(maractus_config_json)
+
+    (nbr_channels, random_patch_h, random_patch_w) = maractus.input_shape
+    assert nbr_channels == 3
+
+    print("Loading data ...")
+    dataset = load_data(random_patch_h, random_patch_w)
+
+
+    print("Building model and compiling functions ...")
+    output_layer = maractus.build_model(batch_size=batch_size)
+    iter_funcs = create_iter_functions(dataset, output_layer, X_tensor_type=theano.tensor.tensor4,
+                                       batch_size=batch_size, learning_rate=learning_rate, momentum=momentum)
+
+    if maractus_params_hdf5_input is not None:
+        maractus.load_params(maractus_params_hdf5_input)
+        print("Resuming from %s." % maractus_params_hdf5_input)
+
 
     print("Starting training...")
     now = time.time()
     try:
-        for epoch in train(iter_funcs, dataset):
+        for epoch in train(iter_funcs, dataset, batch_size):
             print("Epoch {} of {} took {:.3f}s".format(
                 epoch['number'], num_epochs, time.time() - now))
             now = time.time()
@@ -224,9 +221,9 @@ def main(num_epochs=NUM_EPOCHS):
             print("  validation accuracy:\t\t{:.2f} %%".format(
                 epoch['valid_accuracy'] * 100))
 
-            hdf5_path = "/home/gyomalin/ML/tmp/dogs_vs_cats_01.hdf5"
-            maractus.dump_params(hdf5_path)
-            print("Wrote %s." % hdf5_path)
+            if maractus_params_hdf5_output_last is not None:
+                maractus.dump_params(maractus_params_hdf5_output_last)
+                print("Wrote %s.\n" % maractus_params_hdf5_output_last)
 
             if epoch['number'] >= num_epochs:
                 break
@@ -237,5 +234,106 @@ def main(num_epochs=NUM_EPOCHS):
     return output_layer
 
 
-if __name__ == '__main__':
-    main()
+
+# TODO : Have another script initialize the Maractus json file, locking in the values for `(random_patch_h, random_patch_w)`
+#        by the fact that we've set `input_shape`.
+
+# TODO : Add some way to track save the best model so far instead of just saving the last model.
+
+import sys, os
+import getopt
+
+def usage():
+    print("")
+
+def main(argv):
+    """
+    """
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hv", ["learning_rate=", "momentum=", "batch_size=", "num_epochs=",
+                                                        "maractus_config_json=",
+                                                        "maractus_params_hdf5_input=",
+                                                        "maractus_params_hdf5_output_last=",
+                                                        "maractus_params_hdf5_output_best_valid="])
+    except getopt.GetoptError as err:
+        # print help information and exit:
+        print(str(err)) # will print something like "option -a not recognized"
+        usage()
+        sys.exit(2)
+
+    learning_rate = None
+    momentum = None
+    batch_size = None
+    num_epochs = None
+    maractus_config_json = None
+    maractus_params_hdf5_input = None # optional
+    # mandatory if you want to save your results somewhere,
+    # but it's fair if you just want a dry run to test things
+    maractus_params_hdf5_output_last = None
+    maractus_params_hdf5_output_best_valid = None
+
+    verbose = False
+    for o, a in opts:
+        if o == "-v":
+            verbose = True
+        elif o in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif o in ("--learning_rate"):
+            learning_rate = float(a)
+        elif o in ("--momentum"):
+            momentum = float(a)
+        elif o in ("--batch_size"):
+            batch_size = int(a)
+        elif o in ("--num_epochs"):
+            num_epochs = int(a)
+        elif o in ("--maractus_config_json"):
+            maractus_config_json = a
+        elif o in ("--maractus_params_hdf5_input"):
+            maractus_params_hdf5_input = a
+        elif o in ("--maractus_params_hdf5_output_last"):
+            maractus_params_hdf5_output_last = a
+        elif o in ("--maractus_params_hdf5_output_best_valid"):
+            maractus_params_hdf5_output_best_valid = a
+
+        else:
+            assert False, "unhandled option"
+ 
+    assert learning_rate
+    assert momentum
+    assert batch_size
+    assert num_epochs
+    assert maractus_config_json
+
+    run(learning_rate,
+        momentum,
+        batch_size,
+        num_epochs,
+        maractus_config_json,
+        maractus_params_hdf5_input,
+        maractus_params_hdf5_output_last,
+        maractus_params_hdf5_output_best_valid)
+
+if __name__ == "__main__":
+    main(sys.argv)
+
+
+"""
+
+python script_conv_02.py --learning_rate=0.01 --momentum=0.9 --batch_size=200 --num_epochs=10 --maractus_config_json="maractus_01.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp01_01.hdf5"
+
+python script_conv_02.py --learning_rate=0.01 --momentum=0.9 --batch_size=32 --num_epochs=100 --maractus_config_json="maractus_02.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp02_01.hdf5"
+
+
+"""
+
+
+
+
+
+
+
+
+
+
