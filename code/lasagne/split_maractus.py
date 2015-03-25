@@ -70,7 +70,9 @@ def run(nbr_of_splits,
                 if k == 0:
                     # we have the square of the number of splits for the first layer
                     # because we don't touch the very first input layer
-                    indices_out = indices_partition(dim_out, i, nbr_of_splits**2)
+                    #indices_out = indices_partition(dim_out, i, nbr_of_splits**2)
+                    #indices_in  = np.arange(dim_in, dtype=np.intc)
+                    indices_out = indices_partition(dim_out, i1, nbr_of_splits)
                     indices_in  = np.arange(dim_in, dtype=np.intc)
                 else:              
                     indices_out = indices_partition(dim_out, i1, nbr_of_splits)
@@ -94,8 +96,10 @@ def run(nbr_of_splits,
                     raise Error("This was not part of the plan. Maractus doesn't have a dense layer 0.")
                 elif k == K-1:
                     # keep all the indices_out for the last layer
+                    #indices_out  = np.arange(dim_out, dtype=np.intc)
+                    #indices_in = indices_partition(dim_in, i, nbr_of_splits**2)
                     indices_out  = np.arange(dim_out, dtype=np.intc)
-                    indices_in = indices_partition(dim_in, i, nbr_of_splits**2)
+                    indices_in  = indices_partition(dim_in, i0, nbr_of_splits)
                 else:
                     indices_out = indices_partition(dim_out, i1, nbr_of_splits)
                     indices_in  = indices_partition(dim_in, i0, nbr_of_splits)
@@ -113,6 +117,8 @@ def run(nbr_of_splits,
             # Add information about the indices used in those intermediate steps.
             grp.create_dataset('indices_out', data=indices_out)
             grp.create_dataset('indices_in', data=indices_in)
+            grp.create_dataset('original_W_shape', data=W.shape)
+            grp.create_dataset('original_b_shape', data=b.shape)
 
             k = k + 1
 

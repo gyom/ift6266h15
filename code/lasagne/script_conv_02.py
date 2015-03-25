@@ -457,6 +457,57 @@ Epoch 2 of 100 took 41.822s
   validation accuracy:          50.84 %%
 Wrote /home/gyomalin/ML/tmp/maractus_exp04_01.hdf5.
 
+
+
+
+python split_maractus.py --nbr_of_splits=2 --seed=10 --i=0 --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_0.hdf5
+
+python scale_params_maractus.py --L_scale_factor_weights='[1.0, 2.0, 2.0, 2.0, 2.0,   2.0, 2.0, 2.0, 2.0]' --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01_split_0.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_0_rescaled_params.hdf5
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.001 --momentum=0.9 --batch_size=64 --num_epochs=10 --maractus_config_json="specific_models/maractus_04_as_2_split.json" --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01_split_0_rescaled_params.hdf5  --maractus_params_hdf5_output_last=/home/gyomalin/ML/tmp/maractus_exp10_01_split_0_rescaled_params_just_one_step.hdf5
+
+With scaling [1 2 2 2 ...]  (the one that seems theoretically grounded)
+  training loss:                0.736380
+  validation loss:              0.669829
+  validation accuracy:          59.62 %%
+
+With scaling [1 1 1 1 ...]
+  training loss:                0.823714
+  validation loss:              0.744314
+  validation accuracy:          50.84 %%
+
+With scaling [2 2 2 2 ...]
+  training loss:                0.752058
+  validation loss:              0.688596
+  validation accuracy:          56.77 %%
+
+With scaling [2 2 2 2 ... 1]
+  training loss:                0.718212
+  validation loss:              0.682324
+  validation accuracy:          56.89 %%
+
+With scaling [1 2 2 2 ... 1]
+  training loss:                0.726912
+  validation loss:              0.676247
+  validation accuracy:          58.09 %%
+
+With scaling [0.5 2 2 2 ...]
+  training loss:                0.752206
+  validation loss:              0.681849
+  validation accuracy:          55.93 %%
+
+With scaling [0.5 1 1 1 ...]
+  training loss:                0.823807
+  validation loss:              0.744307
+  validation accuracy:          50.84 %%
+
+python scale_params_maractus.py --L_scale_factor_weights='[0.5, 1.0, 1.0, 1.0, 1.0,   1.0, 1.0, 1.0, 1.0]' --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01_split_0.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_0_rescaled_params.hdf5
+python scale_params_maractus.py --L_scale_factor_weights='[1.0, 2.0, 2.0, 2.0, 2.0,   2.0, 2.0, 2.0, 2.0]' --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01_split_0.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_0_rescaled_params.hdf5
+
+
+TODO : Look at the merge operation as a way to verify your split operation.
+
+
 """
 
 
