@@ -63,7 +63,7 @@ class Maractus(object):
     #    return m
 
 
-    def build_model(self, batch_size):
+    def build_model(self, batch_size, deactivate_all_dropout=False):
 
         l_in = lasagne.layers.InputLayer(
         shape=tuple([batch_size] + list(self.input_shape)),
@@ -87,8 +87,8 @@ class Maractus(object):
                 num_filters=num_filters,
                 filter_size=filter_size,
                 nonlinearity=lasagne.nonlinearities.rectify,
-                W=lasagne.init.Uniform(range=0.05),
-                b=lasagne.init.Constant(0),
+                W=lasagne.init.Uniform(range=0.1),
+                b=lasagne.init.Uniform(range=0.0),
                 untie_biases=True,
             )
             l_pool = lasagne.layers.MaxPool2DLayer(l_conv, ds=pool_size)
@@ -108,20 +108,20 @@ class Maractus(object):
 
         for num_hiddens in self.L_num_hiddens:
 
-            l_hidden = lasagne.layers.DenseLayer(
+            l_dropout = lasagne.layers.DropoutLayer(
                 l_current,
-                num_units=num_hiddens,
-                nonlinearity=lasagne.nonlinearities.rectify,
-                W=lasagne.init.Uniform(range=1.0),
-                b=lasagne.init.Constant(0),
-                )
-
-            l_hidden_dropout = lasagne.layers.DropoutLayer(
-                l_hidden,
                 p=self.dense_dropout_p,
                 )
 
-            self.param_vars_for_serialization['%d_lasagne.layers.DenseLayer' % k] = l_hidden.get_params()
+            l_hidden_dropout = lasagne.layers.DenseLayer(
+                l_dropout,
+                num_units=num_hiddens,
+                nonlinearity=lasagne.nonlinearities.rectify,
+                W=lasagne.init.Uniform(range=0.1),
+                b=lasagne.init.Uniform(range=0.1),
+                )
+
+            self.param_vars_for_serialization['%d_lasagne.layers.DenseLayer' % k] = l_hidden_dropout.get_params()
             #self.param_vars_for_serialization['%d_lasagne.layers.DropoutLayer' % k] = l_hidden_dropout.get_params()
 
             # setup for next iteration

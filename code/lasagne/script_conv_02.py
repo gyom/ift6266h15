@@ -198,9 +198,9 @@ def run(learning_rate,
     print("Loading data ...")
     dataset = load_data(random_patch_h, random_patch_w)
 
-
+    deactivate_all_dropout = False
     print("Building model and compiling functions ...")
-    output_layer = maractus.build_model(batch_size=batch_size)
+    output_layer = maractus.build_model(batch_size=batch_size, deactivate_all_dropout=deactivate_all_dropout)
     iter_funcs = create_iter_functions(dataset, output_layer, X_tensor_type=theano.tensor.tensor4,
                                        batch_size=batch_size, learning_rate=learning_rate, momentum=momentum)
 
@@ -323,8 +323,90 @@ if __name__ == "__main__":
 
 python script_conv_02.py --learning_rate=0.01 --momentum=0.9 --batch_size=200 --num_epochs=10 --maractus_config_json="maractus_01.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp01_01.hdf5"
 
-python script_conv_02.py --learning_rate=0.01 --momentum=0.9 --batch_size=32 --num_epochs=100 --maractus_config_json="maractus_02.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp02_01.hdf5"
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.01 --momentum=0.9 --batch_size=32 --num_epochs=100 --maractus_config_json="maractus_02.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp02_01.hdf5"
 
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.1 --momentum=0.9 --batch_size=32 --num_epochs=100 --maractus_config_json="maractus_02.json" --maractus_params_hdf5_input="/home/gyomalin/ML/tmp/maractus_exp02_01.hdf5" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp02_02.hdf5"
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.1 --momentum=0.9 --batch_size=64 --num_epochs=100 --maractus_config_json="specific_models/maractus_03.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp03_01.hdf5"
+
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=1.0 --momentum=0.5 --batch_size=64 --num_epochs=100 --maractus_config_json="specific_models/maractus_03.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp04_01.hdf5"
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=1.0 --momentum=0.5 --batch_size=64 --num_epochs=100 --maractus_config_json="specific_models/maractus_03.json" --maractus_params_hdf5_input="/home/gyomalin/ML/tmp/maractus_exp04_01.hdf5" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp04_02.hdf5"
+
+
+
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.01 --momentum=0.5 --batch_size=64 --num_epochs=100 --maractus_config_json="specific_models/maractus_01_dropout.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp06_01.hdf5"
+
+
+
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.001 --momentum=0.9 --batch_size=64 --num_epochs=100 --maractus_config_json="specific_models/maractus_01.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp07_02.hdf5"
+Epoch 461 of 10000 took 38.143s
+  training loss:                0.553429
+  validation loss:              0.583820
+  validation accuracy:          69.53 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp07_03.hdf5.
+
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.001 --momentum=0.9 --batch_size=128 --num_epochs=10000 --maractus_config_json="specific_models/maractus_01_weak_dropout.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp09_01.hdf5"
+Epoch 467 of 10000 took 37.874s
+  training loss:                0.689635
+  validation loss:              0.691559
+  validation accuracy:          51.69 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp09_01.hdf5.
+...
+Epoch 1633 of 10000 took 32.371s
+  training loss:                0.582956
+  validation loss:              0.620014
+  validation accuracy:          66.74 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp09_01.hdf5.
+
+Epoch 1634 of 10000 took 33.840s
+  training loss:                0.585052
+  validation loss:              0.633294
+  validation accuracy:          63.36 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp09_01.hdf5.
+
+
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.001 --momentum=0.9 --batch_size=64 --num_epochs=10000 --maractus_config_json="specific_models/maractus_04.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5"
+# this takes 2GB
+Epoch 950 of 10000 took 40.241s
+  training loss:                0.291222
+  validation loss:              0.449798
+  validation accuracy:          79.85 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp10_01.hdf5.
+
+Epoch 951 of 10000 took 39.045s
+  training loss:                0.311387
+  validation loss:              0.435685
+  validation accuracy:          81.49 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp10_01.hdf5.
+
+
+
+
+
+Why is THIS happening ?
+What's up with those two losses not being the same at first ?
+
+Using gpu device 0: GeForce GTX TITAN Black
+Constructing Maractus object ...
+Loading data ...
+Building model and compiling functions ...
+Starting training...
+Epoch 1 of 100 took 41.708s
+  training loss:                15.104918
+  validation loss:              0.693189
+  validation accuracy:          50.84 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp04_01.hdf5.
+
+Epoch 2 of 100 took 41.822s
+  training loss:                0.696670
+  validation loss:              0.693189
+  validation accuracy:          50.84 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp04_01.hdf5.
 
 """
 
