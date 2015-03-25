@@ -368,6 +368,30 @@ Epoch 1634 of 10000 took 33.840s
   validation accuracy:          63.36 %%
 Wrote /home/gyomalin/ML/tmp/maractus_exp09_01.hdf5.
 
+Epoch 3055 of 10000 took 29.398s
+  training loss:                0.458034
+  validation loss:              0.521580
+  validation accuracy:          75.12 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp09_01.hdf5.
+
+Epoch 3056 of 10000 took 29.897s
+  training loss:                0.454038
+  validation loss:              0.528156
+  validation accuracy:          73.36 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp09_01.hdf5.
+
+Epoch 3384 of 10000 took 32.101s
+  training loss:                0.440256
+  validation loss:              0.516977
+  validation accuracy:          74.55 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp09_01.hdf5.
+
+Epoch 3385 of 10000 took 30.105s
+  training loss:                0.451355
+  validation loss:              0.531531
+  validation accuracy:          74.22 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp09_01.hdf5.
+
 
 
 THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.001 --momentum=0.9 --batch_size=64 --num_epochs=10000 --maractus_config_json="specific_models/maractus_04.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5"
@@ -383,6 +407,31 @@ Epoch 951 of 10000 took 39.045s
   validation loss:              0.435685
   validation accuracy:          81.49 %%
 Wrote /home/gyomalin/ML/tmp/maractus_exp10_01.hdf5.
+
+Epoch 2152 of 10000 took 36.881s
+  training loss:                0.106781
+  validation loss:              0.578021
+  validation accuracy:          81.45 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp10_01.hdf5.
+
+Epoch 2153 of 10000 took 36.951s
+  training loss:                0.091826
+  validation loss:              0.580842
+  validation accuracy:          81.89 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp10_01.hdf5.
+
+Epoch 2421 of 10000 took 38.792s
+  training loss:                0.079122
+  validation loss:              0.628700
+  validation accuracy:          81.69 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp10_01.hdf5.
+
+Epoch 2422 of 10000 took 39.994s
+  training loss:                0.090754
+  validation loss:              0.623503
+  validation accuracy:          81.57 %%
+Wrote /home/gyomalin/ML/tmp/maractus_exp10_01.hdf5.
+
 
 
 

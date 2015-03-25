@@ -165,6 +165,12 @@ class Maractus(object):
                 param.set_value(np.array(h5file[k][param.name]))
         h5file.close()
 
+    # TODO :
+    # Add something here so that, when the hdf5 file contains indices from a split file
+    # then we can read the parameters at the proper place. This is not quite obvious.
+    # It also requires special handling in the case of biases being averaged
+    # and weights being either dropped out or not.
+
     def dump_config(self, json_path):
         "Save the configuration of the model. Excludes the parameters."
         assert json_path[-5:] == ".json"

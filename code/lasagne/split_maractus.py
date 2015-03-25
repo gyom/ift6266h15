@@ -4,6 +4,10 @@ from __future__ import print_function
 
 # TODO : Write a test that does the split+merge to see if you get the identity map.
 
+# TODO : Also split the config json file.
+
+
+
 import numpy as np
 import h5py
 
@@ -97,17 +101,6 @@ def run(nbr_of_splits,
                     indices_in  = indices_partition(dim_in, i0, nbr_of_splits)
 
                 W_sub = W[:,indices_out][indices_in,:]
-                #print("k : %d" % k)
-                #print("W.shape")
-                #print(W.shape)
-                #print("b")
-                #print(b)
-                #print("b.shape")
-                #print(b.shape)
-                #print("indices_out")
-                #print(indices_out)
-                #print("indices_out.shape")
-                #print(indices_out.shape)
                 b_sub = b[indices_out]
 
             else:
@@ -142,7 +135,6 @@ def main(argv):
         opts, args = getopt.getopt(sys.argv[1:], "hv", ["nbr_of_splits=",
                                                         "seed=",
                                                         "i=",
-                                                        #"maractus_config_json=",
                                                         "maractus_params_hdf5_input=",
                                                         "maractus_params_hdf5_output="])
     except getopt.GetoptError as err:
@@ -154,7 +146,7 @@ def main(argv):
     nbr_of_splits = None
     seed = None
     i = None
-    #maractus_config_json = None # should be optional
+    #scale_weights_factor = 1.0
     maractus_params_hdf5_input = None
     maractus_params_hdf5_output = None
 
@@ -171,6 +163,8 @@ def main(argv):
             seed = int(a)
         elif o in ("--i"):
             i = int(a)
+        #elif o in ("--scale_weights_factor"):
+        #    scale_weights_factor = float(a)            
         elif o in ("--maractus_params_hdf5_input"):
             maractus_params_hdf5_input = a
         elif o in ("--maractus_params_hdf5_output"):
@@ -182,7 +176,7 @@ def main(argv):
     assert nbr_of_splits is not None
     assert seed is not None
     assert i is not None
-    #assert maractus_config_json
+    #assert type(scale_weights_factor) == float
     assert maractus_params_hdf5_input
     assert maractus_params_hdf5_output
 
@@ -203,5 +197,5 @@ python split_maractus.py --nbr_of_splits=2 --seed=10 --i=0 --maractus_params_hdf
 python split_maractus.py --nbr_of_splits=2 --seed=10 --i=1 --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_1.hdf5
 python split_maractus.py --nbr_of_splits=2 --seed=10 --i=2 --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_2.hdf5
 python split_maractus.py --nbr_of_splits=2 --seed=10 --i=3 --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_3.hdf5
-python split_maractus.py --nbr_of_splits=2 --seed=10 --i=4 --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_4.hdf5
+
 """
