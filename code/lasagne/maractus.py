@@ -20,7 +20,8 @@ class Maractus(object):
                     L_pool_size,
                     L_num_hiddens,
                     input_shape, output_dim,
-                    conv_dropout_p=0.0, dense_dropout_p=0.0):
+                    L_conv_dropout_p=None,
+                    L_dense_dropout_p=None):
         """
         L_num_filters contains integers
         L_filter_size contains (h,w)
@@ -33,6 +34,15 @@ class Maractus(object):
         assert len (L_num_filters) == len(L_filter_size)
         assert len (L_num_filters) == len(L_pool_size)
 
+        if L_conv_dropout_p is None:
+            L_conv_dropout_p = [0.0] * len(L_num_filters)
+        #elif type(L_conv_dropout_p) == float:
+        #    L_conv_dropout_p = [L_conv_dropout_p] * len(L_num_filters)
+
+        if L_dense_dropout_p is None:
+            L_dense_dropout_p = [0.0] * len(L_num_hiddens)
+
+
         self.L_num_filters = L_num_filters
         self.L_filter_size = L_filter_size
         self.L_pool_size = L_pool_size
@@ -41,10 +51,11 @@ class Maractus(object):
         self.input_shape = input_shape
         self.output_dim = output_dim
 
-        self.conv_dropout_p = conv_dropout_p
-        self.dense_dropout_p = dense_dropout_p
+        self.L_conv_dropout_p = L_conv_dropout_p
+        self.L_dense_dropout_p = L_dense_dropout_p
 
         self.param_vars_for_serialization = {}
+        self.lion_meta_information_carried_in_serialization = {}
 
     @classmethod
     def new_from_json_config(cls, json_path):
@@ -75,11 +86,11 @@ class Maractus(object):
         # Convolutional part
         ###
         l_current = l_in
-        for (num_filters, filter_size, pool_size) in zip(self.L_num_filters, self.L_filter_size, self.L_pool_size):
+        for (conv_dropout_p, num_filters, filter_size, pool_size) in zip(self.L_conv_dropout_p, self.L_num_filters, self.L_filter_size, self.L_pool_size):
 
             l_dropout = lasagne.layers.DropoutLayer(
                 l_current,
-                p=self.conv_dropout_p,
+                p=conv_dropout_p,
                 )
 
             l_conv = lasagne.layers.Conv2DLayer(
@@ -93,7 +104,7 @@ class Maractus(object):
             )
             l_pool = lasagne.layers.MaxPool2DLayer(l_conv, ds=pool_size)
             self.param_vars_for_serialization['%d_lasagne.layers.Conv2DLayer' % k] = l_conv.get_params()
-            self.param_vars_for_serialization['%d_lasagne.layers.MaxPool2DLayer' % k] = l_pool.get_params()
+            #self.param_vars_for_serialization['%d_lasagne.layers.MaxPool2DLayer' % k] = l_pool.get_params()
 
             # setup for next iteration
             l_current = l_pool
@@ -106,11 +117,11 @@ class Maractus(object):
         l_flattened = lasagne.layers.ReshapeLayer(l_current, ([0], -1))
         l_current = l_flattened
 
-        for num_hiddens in self.L_num_hiddens:
+        for (dense_dropout_p, num_hiddens) in zip(self.L_dense_dropout_p, self.L_num_hiddens):
 
             l_dropout = lasagne.layers.DropoutLayer(
                 l_current,
-                p=self.dense_dropout_p,
+                p=dense_dropout_p,
                 )
 
             l_hidden_dropout = lasagne.layers.DenseLayer(
@@ -146,23 +157,38 @@ class Maractus(object):
         assert hdf5_path[-5:] == ".hdf5"
         h5file = h5py.File(hdf5_path, "w")
         #print(dir(h5file))
-        for (k,params) in self.param_vars_for_serialization.items():
+        for (layer_name, params) in self.param_vars_for_serialization.items():
             #print(k)
-            grp = h5file.create_group(k)
+            grp = h5file.create_group(layer_name)
             for param in params:
                 #print(param.name)
                 #print(param.get_value())
                 grp.create_dataset(param.name, data=param.get_value())
+
+            if self.lion_meta_information_carried_in_serialization.has_key(layer_name):
+                # everything to be carried over are numpy arrays of integers
+                for lion_desc_key in ['indices_in', 'indices_out', 'original_W_shape', 'original_b_shape']:
+                    if lion_desc_key in self.lion_meta_information_carried_in_serialization[layer_name].keys():
+                        grp.create_dataset(lion_desc_key, data=self.lion_meta_information_carried_in_serialization[layer_name][lion_desc_key])
+
         h5file.close()
 
     def load_params(self, hdf5_path):
         "Load and set the values for the shared theano variables that represent the model parameters."
         assert hdf5_path[-5:] == ".hdf5"
         h5file = h5py.File(hdf5_path, "r")
-        for (k,params) in self.param_vars_for_serialization.items():
+        for (layer_name, params) in self.param_vars_for_serialization.items():
             for param in params:
                 # everything is a float anyways so we're fine
-                param.set_value(np.array(h5file[k][param.name]))
+                param.set_value(np.array(h5file[layer_name][param.name]))
+
+            # everything to be carried over are numpy arrays of integers
+            for lion_desc_key in ['indices_in', 'indices_out', 'original_W_shape', 'original_b_shape']:
+                if lion_desc_key in h5file[layer_name].keys():
+                    if not self.lion_meta_information_carried_in_serialization.has_key(layer_name):
+                        self.lion_meta_information_carried_in_serialization[layer_name] = {}
+                    self.lion_meta_information_carried_in_serialization[layer_name][lion_desc_key] = np.array( h5file[layer_name][lion_desc_key] ).astype(np.intc)
+
         h5file.close()
 
     # TODO :
@@ -181,8 +207,8 @@ class Maractus(object):
                     L_num_hiddens=L_num_hiddens,
                     input_shape=input_shape,
                     output_dim=output_dim,
-                    conv_dropout_p=conv_dropout_p,
-                    dense_dropout_p=dense_dropout_p )
+                    L_conv_dropout_p=L_conv_dropout_p,
+                    L_dense_dropout_p=L_dense_dropout_p )
 
         import json
         json.dump(desc, open(json_path, "w"))
@@ -202,19 +228,19 @@ class Maractus(object):
         self.input_shape = tuple(desc['input_shape'])
         self.output_dim = desc['output_dim']
 
-        self.conv_dropout_p = float(desc['conv_dropout_p'])
-        self.dense_dropout_p = float(desc['dense_dropout_p'])
+        self.L_conv_dropout_p = [float(e) for e in desc['L_conv_dropout_p']]
+        self.L_dense_dropout_p = [float(e) for e in desc['L_dense_dropout_p']]
 
         self.param_vars_for_serialization = {}
 
 
-    @classmethod
-    def split_into_shards():
-        """
-        There will have to be some extra parameters to trace what kind of split was done
-        so that we can put back the pieces together.
-        """
-        pass
+    #@classmethod
+    #def split_into_shards():
+    #    """
+    #    There will have to be some extra parameters to trace what kind of split was done
+    #    so that we can put back the pieces together.
+    #    """
+    #    pass
 
 
 

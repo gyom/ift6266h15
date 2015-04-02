@@ -4,9 +4,15 @@ from __future__ import print_function
 
 # TODO : Write a test that does the split+merge to see if you get the identity map.
 
-# TODO : Also split the config json file.
+# TODO : implement a variant that doesn't do the exponential thing because it's hard to reconcile on the first layer
 
 
+# Note that this splitting pattern will affect all the firsts from input to first layer,
+# but then it will affect only half of the weights in all the other transitions.
+
+# Because of that, we will be unable to perform the merge without having
+# access to the voltron weights. This is because only half of the weights
+# are being updated. The lion trajectories contain only half of the information.
 
 import numpy as np
 import h5py
@@ -29,11 +35,7 @@ def run(nbr_of_splits,
         maractus_params_hdf5_output):
 
         # we want to crash before we create the files, if we have illegal values here
-        assert i < nbr_of_splits**2
-        # decompose into two parts (i0,i1) that cover the range(nbr_of_splits**2)
-        i0 = i / nbr_of_splits
-        i1 = i - i0 * nbr_of_splits
-        assert i0 * nbr_of_splits + i1 == i
+        assert i < nbr_of_splits
 
         assert maractus_params_hdf5_input[-5:] == ".hdf5"
         assert maractus_params_hdf5_output[-5:] == ".hdf5"
@@ -68,15 +70,13 @@ def run(nbr_of_splits,
                 (dim_out, dim_in, h, w) = W.shape
 
                 if k == 0:
-                    # we have the square of the number of splits for the first layer
-                    # because we don't touch the very first input layer
-                    #indices_out = indices_partition(dim_out, i, nbr_of_splits**2)
-                    #indices_in  = np.arange(dim_in, dtype=np.intc)
-                    indices_out = indices_partition(dim_out, i1, nbr_of_splits)
+                    # We don't touch the very first input layer.
+                    # All trajectories see the input layer completely.
+                    indices_out = indices_partition(dim_out, i, nbr_of_splits)
                     indices_in  = np.arange(dim_in, dtype=np.intc)
-                else:              
-                    indices_out = indices_partition(dim_out, i1, nbr_of_splits)
-                    indices_in  = indices_partition(dim_in, i0, nbr_of_splits)
+                else:
+                    indices_out = indices_partition(dim_out, i, nbr_of_splits)
+                    indices_in  = indices_partition(dim_in, i, nbr_of_splits)
 
                 W_sub = W[indices_out,:,:,:][:,indices_in,:,:]
                 b_sub = b[indices_out,:,:]
@@ -96,20 +96,14 @@ def run(nbr_of_splits,
                     raise Error("This was not part of the plan. Maractus doesn't have a dense layer 0.")
                 elif k == K-1:
                     # keep all the indices_out for the last layer
-                    #indices_out  = np.arange(dim_out, dtype=np.intc)
-                    #indices_in = indices_partition(dim_in, i, nbr_of_splits**2)
                     indices_out  = np.arange(dim_out, dtype=np.intc)
-                    indices_in  = indices_partition(dim_in, i0, nbr_of_splits)
+                    indices_in  = indices_partition(dim_in, i, nbr_of_splits)
                 else:
-                    indices_out = indices_partition(dim_out, i1, nbr_of_splits)
-                    indices_in  = indices_partition(dim_in, i0, nbr_of_splits)
+                    indices_out = indices_partition(dim_out, i, nbr_of_splits)
+                    indices_in  = indices_partition(dim_in, i, nbr_of_splits)
 
                 W_sub = W[:,indices_out][indices_in,:]
                 b_sub = b[indices_out]
-
-            else:
-                # we've reached the end of the layers. break from the `While`
-                break
 
             grp = h5file_output.create_group(layer_name)
             grp.create_dataset('W', data=W_sub)
@@ -119,9 +113,6 @@ def run(nbr_of_splits,
             grp.create_dataset('indices_in', data=indices_in)
             grp.create_dataset('original_W_shape', data=W.shape)
             grp.create_dataset('original_b_shape', data=b.shape)
-
-            k = k + 1
-
 
         h5file_input.close()
         h5file_output.close()
@@ -201,7 +192,5 @@ if __name__ == "__main__":
 
 python split_maractus.py --nbr_of_splits=2 --seed=10 --i=0 --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_0.hdf5
 python split_maractus.py --nbr_of_splits=2 --seed=10 --i=1 --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_1.hdf5
-python split_maractus.py --nbr_of_splits=2 --seed=10 --i=2 --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_2.hdf5
-python split_maractus.py --nbr_of_splits=2 --seed=10 --i=3 --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/maractus_exp10_01.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/maractus_exp10_01_split_3.hdf5
 
 """

@@ -61,15 +61,16 @@ def create_iter_functions(dataset, output_layer,
                           X_tensor_type,
                           batch_size,
                           learning_rate,
-                          momentum):
+                          momentum,
+                          momentum_flavor="momentum",
+                          weight_decay_factor=0.0):
+    assert momentum_flavor in ["nesterov_momentum", "momentum", "adadelta"]
+    assert 0.0 <= weight_decay_factor
     batch_index = T.iscalar('batch_index')
     X_batch = X_tensor_type('x')
     y_batch = T.ivector('y')
     #batch_slice = slice(
     #    batch_index * batch_size, (batch_index + 1) * batch_size)
-
-    # when this is true, it prevents dropout from dropping units
-    deterministic=False
 
     objective = lasagne.objectives.Objective(output_layer,
         loss_function=lasagne.objectives.categorical_crossentropy)
@@ -87,21 +88,28 @@ def create_iter_functions(dataset, output_layer,
     accuracy = T.mean(T.eq(pred, y_batch), dtype=theano.config.floatX)
 
     all_params = lasagne.layers.get_all_params(output_layer)
-    updates = lasagne.updates.nesterov_momentum(
-        loss_train, all_params, learning_rate, momentum)
-    #updates = lasagne.updates.momentum(
-    #    loss_train, all_params, learning_rate, momentum)
-    #updates = lasagne.updates.adadelta(
-    #    loss_train, all_params)
+
+    # weight decay
+    if 0 < weight_decay_factor:
+        weight_decay_term = weight_decay_factor * sum(T.sum(T.sqr(param)) for param in all_params if param.name == 'W')
+    else:
+        weight_decay_term = 0.0
+
+
+    if momentum_flavor == "nesterov_momentum":
+        updates = lasagne.updates.nesterov_momentum(loss_train + weight_decay_term, all_params, learning_rate, momentum)
+
+    elif momentum_flavor == "momentum":
+        updates = lasagne.updates.momentum(loss_train + weight_decay_term, all_params, learning_rate, momentum)
+
+    elif momentum_flavor == "adadelta":
+        updates = lasagne.updates.adadelta(loss_train + weight_decay_term, all_params)
 
 
 
-    iter_train = theano.function(
-        [X_batch, y_batch], loss_train,
-        updates=updates
-    )
-    iter_valid = theano.function( [X_batch, y_batch], [loss_eval, accuracy] )
-    iter_test  = theano.function( [X_batch, y_batch], [loss_eval, accuracy] )
+    iter_train = theano.function( [X_batch, y_batch], loss_train + weight_decay_term, updates=updates )
+    iter_valid = theano.function( [X_batch, y_batch], [loss_eval + weight_decay_term, accuracy] )
+    iter_test  = theano.function( [X_batch, y_batch], [loss_eval + weight_decay_term, accuracy] )
 
     return dict(
         train=iter_train,
@@ -180,12 +188,15 @@ def train(iter_funcs, dataset, batch_size):
 
 def run(learning_rate,
         momentum,
+        momentum_flavor,
+        weight_decay_factor,
         batch_size,
         num_epochs,
         maractus_config_json,
         maractus_params_hdf5_input,
         maractus_params_hdf5_output_last,
-        maractus_params_hdf5_output_best_valid):
+        maractus_params_hdf5_output_best_valid_loss,
+        log_file_json):
 
 
     print("Constructing Maractus object ...")
@@ -202,25 +213,71 @@ def run(learning_rate,
     print("Building model and compiling functions ...")
     output_layer = maractus.build_model(batch_size=batch_size, deactivate_all_dropout=deactivate_all_dropout)
     iter_funcs = create_iter_functions(dataset, output_layer, X_tensor_type=theano.tensor.tensor4,
-                                       batch_size=batch_size, learning_rate=learning_rate, momentum=momentum)
+                                       batch_size=batch_size, learning_rate=learning_rate, momentum=momentum, momentum_flavor=momentum_flavor,
+                                       weight_decay_factor=weight_decay_factor)
 
     if maractus_params_hdf5_input is not None:
         maractus.load_params(maractus_params_hdf5_input)
         print("Resuming from %s." % maractus_params_hdf5_input)
 
-
     print("Starting training...")
+    current_best_valid_loss = None
     now = time.time()
+    history = dict( learning_rate=learning_rate,
+                    momentum=momentum,
+                    momentum_flavor=momentum_flavor,
+                    weight_decay_factor=weight_decay_factor,
+                    batch_size=batch_size,
+                    num_epochs=num_epochs,
+                    maractus_config_json=maractus_config_json,
+                    maractus_params_hdf5_input=maractus_params_hdf5_input,
+                    maractus_params_hdf5_output_last=maractus_params_hdf5_output_last,
+                    maractus_params_hdf5_output_best_valid_loss=maractus_params_hdf5_output_best_valid_loss,
+                    L_epoch = [] )
+
     try:
         for epoch in train(iter_funcs, dataset, batch_size):
+
+            epoch['start_time'] = now
+            epoch['end_time'] = time.time()
+            
+
             print("Epoch {} of {} took {:.3f}s".format(
                 epoch['number'], num_epochs, time.time() - now))
-            now = time.time()
+            #now = time.time()
             print("  training loss:\t\t{:.6f}".format(epoch['train_loss']))
             print("  validation loss:\t\t{:.6f}".format(epoch['valid_loss']))
             print("  validation accuracy:\t\t{:.2f} %%".format(
                 epoch['valid_accuracy'] * 100))
 
+            # minor conversion so that this can be serialized to JSON
+            # ex : http://stackoverflow.com/questions/11561932/why-does-json-dumpslistnp-arange5-fail-while-json-dumpsnp-arange5-tolis
+            for key in ['train_loss', 'valid_loss', 'valid_accuracy']:
+                epoch[key] = float(epoch[key])
+            history['L_epoch'].append(epoch)
+
+
+            if log_file_json is not None:
+                import json
+                json.dump(history, open(log_file_json, "w"), sort_keys=True, indent=4, separators=(',', ': '))
+
+
+            # save best valid loss
+            if maractus_params_hdf5_output_best_valid_loss is not None:
+                if current_best_valid_loss is None:
+                    # this is the first one
+                    current_best_valid_loss = epoch['valid_loss']
+                elif epoch['valid_loss'] < current_best_valid_loss:
+                    # found a better one than the previous one
+                    current_best_valid_loss = epoch['valid_loss']
+
+                # this considers the first value encountered as the best so far
+                if current_best_valid_loss == epoch['valid_loss']:
+                    maractus.dump_params(maractus_params_hdf5_output_best_valid_loss)
+                    print("Wrote %s.\n" % maractus_params_hdf5_output_best_valid_loss)
+
+
+            # save the last
             if maractus_params_hdf5_output_last is not None:
                 maractus.dump_params(maractus_params_hdf5_output_last)
                 print("Wrote %s.\n" % maractus_params_hdf5_output_last)
@@ -228,17 +285,15 @@ def run(learning_rate,
             if epoch['number'] >= num_epochs:
                 break
 
+            now = time.time()
+
+
     except KeyboardInterrupt:
         pass
 
     return output_layer
 
 
-
-# TODO : Have another script initialize the Maractus json file, locking in the values for `(random_patch_h, random_patch_w)`
-#        by the fact that we've set `input_shape`.
-
-# TODO : Add some way to track save the best model so far instead of just saving the last model.
 
 import sys, os
 import getopt
@@ -251,11 +306,13 @@ def main(argv):
     """
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hv", ["learning_rate=", "momentum=", "batch_size=", "num_epochs=",
+        opts, args = getopt.getopt(sys.argv[1:], "hv", ["learning_rate=", "momentum=", "momentum_flavor=", "weight_decay_factor=", 
+                                                        "batch_size=", "num_epochs=",
                                                         "maractus_config_json=",
                                                         "maractus_params_hdf5_input=",
                                                         "maractus_params_hdf5_output_last=",
-                                                        "maractus_params_hdf5_output_best_valid="])
+                                                        "maractus_params_hdf5_output_best_valid_loss=",
+                                                        "log_file="])
     except getopt.GetoptError as err:
         # print help information and exit:
         print(str(err)) # will print something like "option -a not recognized"
@@ -264,6 +321,8 @@ def main(argv):
 
     learning_rate = None
     momentum = None
+    momentum_flavor = "momentum"
+    weight_decay_factor = 0.0
     batch_size = None
     num_epochs = None
     maractus_config_json = None
@@ -271,7 +330,8 @@ def main(argv):
     # mandatory if you want to save your results somewhere,
     # but it's fair if you just want a dry run to test things
     maractus_params_hdf5_output_last = None
-    maractus_params_hdf5_output_best_valid = None
+    maractus_params_hdf5_output_best_valid_loss = None
+    log_file = None
 
     verbose = False
     for o, a in opts:
@@ -284,6 +344,10 @@ def main(argv):
             learning_rate = float(a)
         elif o in ("--momentum"):
             momentum = float(a)
+        elif o in ("--momentum_flavor"):
+            momentum_flavor = a
+        elif o in ("--weight_decay_factor"):
+            weight_decay_factor = float(a)
         elif o in ("--batch_size"):
             batch_size = int(a)
         elif o in ("--num_epochs"):
@@ -294,8 +358,10 @@ def main(argv):
             maractus_params_hdf5_input = a
         elif o in ("--maractus_params_hdf5_output_last"):
             maractus_params_hdf5_output_last = a
-        elif o in ("--maractus_params_hdf5_output_best_valid"):
-            maractus_params_hdf5_output_best_valid = a
+        elif o in ("--maractus_params_hdf5_output_best_valid_loss"):
+            maractus_params_hdf5_output_best_valid_loss = a
+        elif o in ("--log_file"):
+            log_file = a
 
         else:
             assert False, "unhandled option"
@@ -308,12 +374,15 @@ def main(argv):
 
     run(learning_rate,
         momentum,
+        momentum_flavor,
+        weight_decay_factor,
         batch_size,
         num_epochs,
         maractus_config_json,
         maractus_params_hdf5_input,
         maractus_params_hdf5_output_last,
-        maractus_params_hdf5_output_best_valid)
+        maractus_params_hdf5_output_best_valid_loss,
+        log_file)
 
 if __name__ == "__main__":
     main(sys.argv)
@@ -506,6 +575,17 @@ python scale_params_maractus.py --L_scale_factor_weights='[1.0, 2.0, 2.0, 2.0, 2
 
 
 TODO : Look at the merge operation as a way to verify your split operation.
+
+
+
+
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.001 --momentum=0.9 --batch_size=32 --num_epochs=10000 --maractus_config_json="specific_models/maractus_05_voltron_dropout.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_05_voltron_dropout_direct_exp01_01.hdf5" >> maractus_05_voltron_dropout_direct_exp01_01.log
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.001 --momentum=0.9 --batch_size=32 --num_epochs=10000 --maractus_config_json="specific_models/maractus_05_voltron.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_05_voltron_direct_exp01_01.hdf5" >> maractus_05_voltron_direct_exp01_01.log
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.001 --momentum=0.9 --batch_size=32 --num_epochs=10000 --maractus_config_json="specific_models/maractus_05_lion.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_05_lion_direct_exp01_01.hdf5" >> logs/maractus_05_lion_direct_exp01_01.log
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.001 --momentum=0.9 --batch_size=32 --num_epochs=10000 --maractus_config_json="specific_models/maractus_05_lion.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/maractus_05_lion_direct_exp02_01.hdf5" >> logs/maractus_05_lion_direct_exp02_01.log
 
 
 """
