@@ -30,7 +30,8 @@ def gen_cmdlines_train(nbr_of_splits, exptag, t, learning_rate):
     momentum = 0.8
     batch_size = 128
     #num_epochs = 32
-    num_epochs = 100
+    #num_epochs = 100
+    num_epochs = 200
     momentum_flavor = "nesterov_momentum"
     weight_decay_factor = 0.00001
 
@@ -91,7 +92,9 @@ if __name__ == "__main__":
     #base_seed = np.random.randint(low=0, high=100000)
 
     base_seed = 10
-    learning_rate = 0.025
+    #learning_rate = 0.025
+    learning_rate = 0.005
+
 
     #t = 8
 
@@ -99,7 +102,9 @@ if __name__ == "__main__":
 
     #L_t = range(1, 8)
     #L_t = range(8, 16)
-    L_t = range(16, 24)
+    #L_t = range(16, 24)
+    #L_t = range(24, 32)
+    L_t = range(32, 48)
 
 
     for t in L_t:

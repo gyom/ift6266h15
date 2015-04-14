@@ -75,6 +75,16 @@ THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate
 
 # run the script3, learning rate = 0.025, num_epochs=100
 
+#Epoch 99 of 100 took 29.930s
+#  training loss:                0.511848
+#  validation loss:              0.507857
+#  validation accuracy:          76.03 %%
+#Wrote /home/gyomalin/ML/tmp/exp05/maractus_exp05_24_lion_0.hdf5.
 
+#Epoch 93 of 100 took 29.871s
+#  training loss:                0.509853
+#  validation loss:              0.511098
+#  validation accuracy:          76.23 %%
+#Wrote /home/gyomalin/ML/tmp/exp05/maractus_exp05_24_lion_1.hdf5.
 
 

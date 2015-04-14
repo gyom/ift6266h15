@@ -1,0 +1,297 @@
+
+#cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_01_pretrained.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_01_pretrained_100steps_74percent.hdf5
+
+
+# but here we're starting from the setup where we ran the pretraining for approximately 30 iterations
+
+
+
+# initial setup with some pretraining
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py --learning_rate=0.1 --momentum=0.1 --batch_size=32 --num_epochs=100 --maractus_config_json="specific_models/maractus_05_voltron.json" --maractus_params_hdf5_output_last="/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_01_pretrained.hdf5"
+
+# scale down the factors for the pretrained model
+python scale_params_maractus.py --L_scale_factor_weights='[1.0, 2.0, 2.0, 2.0, 2.0,   2.0, 2.0, 2.0, 2.0]' --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_01_pretrained.hdf5 --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_01.hdf5
+
+
+
+
+# lion_taming_hardcoded.py with t=1, learning_rate = 0.1
+
+python split_maractus.py          --nbr_of_splits=2          --seed=11          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_01.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_01_lion_0.hdf5          
+
+python split_maractus.py          --nbr_of_splits=2          --seed=11          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_01.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_01_lion_1.hdf5          
+
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.100000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_01_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_0_log.json          
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.100000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_01_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_1_log.json          
+
+
+#Epoch 29 of 32 took 36.450s
+#  training loss:                0.610144
+#  validation loss:              0.612592
+#  validation accuracy:          66.95 %%
+#Wrote /home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_0.hdf5.
+
+#Epoch 30 of 32 took 40.062s
+#  training loss:                0.610002
+#  validation loss:              0.612916
+#  validation accuracy:          65.67 %%
+#Wrote /home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_1.hdf5.
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_01.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_02.hdf5
+
+python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_02.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_1.hdf5"]'
+
+
+
+
+
+
+
+
+
+# lion_taming_hardcoded.py with t=2, learning_rate = 0.1
+
+
+
+
+python split_maractus.py          --nbr_of_splits=2          --seed=12          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_02.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_0.hdf5          
+
+python split_maractus.py          --nbr_of_splits=2          --seed=12          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_02.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_1.hdf5          
+
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.100000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_0_log.json          
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.100000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_02_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_1_log.json          
+
+#Epoch 22 of 32 took 35.479s
+#  training loss:                0.612444
+#  validation loss:              0.594210
+#  validation accuracy:          69.15 %%
+#Wrote /home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_0.hdf5.
+
+#Epoch 31 of 32 took 32.088s
+#  training loss:                0.617652
+#  validation loss:              0.598747
+#  validation accuracy:          68.31 %%
+#Wrote /home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_1.hdf5
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_02.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_03.hdf5
+
+python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_03.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_1.hdf5"]'
+
+
+
+
+
+
+
+# lion_taming_hardcoded.py with t=3, learning_rate = 0.1
+
+python split_maractus.py          --nbr_of_splits=2          --seed=13          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_03.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_0.hdf5          
+
+python split_maractus.py          --nbr_of_splits=2          --seed=13          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_03.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_1.hdf5          
+
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.100000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_04_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_04_lion_0_log.json          
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.100000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_03_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_04_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_04_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_03.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_04.hdf5
+
+python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_04.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_04_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_04_lion_1.hdf5"]'
+
+
+
+# lion_taming_hardcoded.py with t=4, learning_rate = 0.01
+
+python split_maractus.py          --nbr_of_splits=2          --seed=14          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_04.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_04_lion_0.hdf5          
+
+python split_maractus.py          --nbr_of_splits=2          --seed=14          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_04.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_04_lion_1.hdf5          
+
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.010000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_04_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_05_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_05_lion_0_log.json          
+
+THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.010000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_04_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_05_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_05_lion_1_log.json          
+
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_04.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_05.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_05.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_05_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_05_lion_1.hdf5"]'
+
+
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=15          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_05.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_05_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=15          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_05.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_05_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.010000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_05_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_06_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_06_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.010000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_05_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_06_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_06_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_05.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_06.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_06.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_06_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_06_lion_1.hdf5"]'      
+
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=16          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_06.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_06_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=16          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_06.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_06_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.010000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_06_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_07_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_07_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.010000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_06_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_07_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_07_lion_1_log.json          
+
+
+
+
+# you are HERE
+
+
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_06.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_07.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_07.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_07_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_07_lion_1.hdf5"]'      
+
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=17          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_07.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_07_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=17          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_07.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_07_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.010000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_07_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_08_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_08_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.010000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_07_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_08_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_08_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_07.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_08.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_08.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_08_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_08_lion_1.hdf5"]'      
+
+
+
+
+# t = 8, learning_rate = 0.001000 
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=18          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_08.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_08_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=18          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_08.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_08_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_08_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_09_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_09_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_08_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_09_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_09_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_08.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_09.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_09.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_09_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_09_lion_1.hdf5"]'      
+
+
+
+
+# t = 9, learning_rate = 0.001000 
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=19          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_09.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_09_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=19          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_09.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_09_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_09_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_10_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_10_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_09_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_10_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_10_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_09.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_10.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_10.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_10_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_10_lion_1.hdf5"]'      
+
+
+
+
+# t = 10, learning_rate = 0.001000 
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=20          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_10.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_10_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=20          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_10.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_10_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_10_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_11_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_11_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_10_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_11_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_11_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_10.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_11.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_11.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_11_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_11_lion_1.hdf5"]'      
+
+
+
+
+# t = 11, learning_rate = 0.001000 
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=21          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_11.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_11_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=21          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_11.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_11_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_11_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_12_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_12_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_11_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_12_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_12_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_11.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_12.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_12.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_12_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_12_lion_1.hdf5"]'      
+
+
+
+
+# t = 12, learning_rate = 0.001000 
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=22          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_12.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_12_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=22          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_12.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_12_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_12_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_13_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_13_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_12_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_13_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_13_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_12.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_13.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_13.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_13_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_13_lion_1.hdf5"]'      
+
+
+
+
+# t = 13, learning_rate = 0.001000 
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=23          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_13.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_13_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=23          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_13.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_13_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_13_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_14_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_14_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_13_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_14_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_14_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_13.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_14.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_14.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_14_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_14_lion_1.hdf5"]'      
+
+
+
+
+# t = 14, learning_rate = 0.001000 
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=24          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_14.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_14_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=24          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_14.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_14_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_14_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_15_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_15_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_14_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_15_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_15_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_14.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_15.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_15.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_15_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_15_lion_1.hdf5"]'      
+
+
+
+
+# t = 15, learning_rate = 0.001000 
+
+          python split_maractus.py          --nbr_of_splits=2          --seed=25          --i=0          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_15.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_15_lion_0.hdf5          
+          python split_maractus.py          --nbr_of_splits=2          --seed=25          --i=1          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_15.hdf5          --maractus_params_hdf5_output=/home/gyomalin/ML/tmp/exp04/maractus_exp04_15_lion_1.hdf5          
+
+
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_15_lion_0.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_16_lion_0.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_16_lion_0_log.json          
+          THEANO_FLAGS=floatX=float32,device=gpu0 python script_conv_02.py          --learning_rate=0.001000          --momentum=0.100000          --batch_size=32          --num_epochs=32          --maractus_config_json="specific_models/maractus_05_lion.json"          --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/exp04/maractus_exp04_15_lion_1.hdf5          --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/exp04/maractus_exp04_16_lion_1.hdf5"          --log_file=/home/gyomalin/ML/tmp/exp04/maractus_exp04_16_lion_1_log.json          
+
+
+cp /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_15.hdf5 /home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_16.hdf5
+      python merge_maractus.py      --maractus_params_hdf5_mutable='/home/gyomalin/ML/tmp/exp04/maractus_05_voltron_exp04_16.hdf5'      --maractus_params_hdf5_lion_input='["/home/gyomalin/ML/tmp/exp04/maractus_exp04_16_lion_0.hdf5", "/home/gyomalin/ML/tmp/exp04/maractus_exp04_16_lion_1.hdf5"]'      
+
+
