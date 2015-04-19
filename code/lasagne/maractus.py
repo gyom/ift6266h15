@@ -76,6 +76,28 @@ class Maractus(object):
 
     def build_model(self, batch_size, deactivate_all_dropout=False):
 
+        def make_second_version_of_params(L_shared_theano_vars, name_suffix="_momentum"):
+            """
+            Used to make a momentum version of the parameters.
+            Later on it might be used for something else (e.g. RMSprop)
+            """
+            #res = []
+            #for var in L_shared_theano_vars:
+            #    # see if var.shape works, or if you need to go var.get_value().shape
+            #    new_var = theano.shared(np.zeros(var.shape), name=name+name_suffix)
+            #    res.append(new_var)
+            #return res
+
+            # e.shape
+            # e.get_value(borrow=True, return_internal_type=True).shape
+
+            return [theano.shared(np.zeros(e.get_value(borrow=True, return_internal_type=True).shape,
+                                           dtype=theano.config.floatX),
+                                  broadcastable=e.broadcastable,
+                                  name=e.name+name_suffix) for e in L_shared_theano_vars]
+
+
+
         l_in = lasagne.layers.InputLayer(
         shape=tuple([batch_size] + list(self.input_shape)),
         )
@@ -103,7 +125,10 @@ class Maractus(object):
                 untie_biases=True,
             )
             l_pool = lasagne.layers.MaxPool2DLayer(l_conv, ds=pool_size)
-            self.param_vars_for_serialization['%d_lasagne.layers.Conv2DLayer' % k] = l_conv.get_params()
+
+            L_params = l_conv.get_params()
+            self.param_vars_for_serialization['%d_lasagne.layers.Conv2DLayer' % k] = L_params + make_second_version_of_params(L_params)
+
             #self.param_vars_for_serialization['%d_lasagne.layers.MaxPool2DLayer' % k] = l_pool.get_params()
 
             # setup for next iteration
@@ -132,7 +157,8 @@ class Maractus(object):
                 b=lasagne.init.Uniform(range=0.1),
                 )
 
-            self.param_vars_for_serialization['%d_lasagne.layers.DenseLayer' % k] = l_hidden_dropout.get_params()
+            L_params = l_hidden_dropout.get_params()
+            self.param_vars_for_serialization['%d_lasagne.layers.DenseLayer' % k] = L_params + make_second_version_of_params(L_params)
             #self.param_vars_for_serialization['%d_lasagne.layers.DropoutLayer' % k] = l_hidden_dropout.get_params()
 
             # setup for next iteration
@@ -144,7 +170,9 @@ class Maractus(object):
             num_units=self.output_dim,
             nonlinearity=lasagne.nonlinearities.softmax,
         )
-        self.param_vars_for_serialization['%d_lasagne.layers.DenseLayer' % k] = output_layer.get_params()
+
+        L_params = output_layer.get_params()
+        self.param_vars_for_serialization['%d_lasagne.layers.DenseLayer' % k] = L_params + make_second_version_of_params(L_params)
         k = k + 1
 
         return output_layer
@@ -242,6 +270,49 @@ class Maractus(object):
     #    """
     #    pass
 
+    def find_associated_momentum_shared_variable(self, query_param, momentum_name_suffix):
+
+        momentum_param_name = query_param.name + momentum_name_suffix
+
+        for (_, L_layer_params) in self.param_vars_for_serialization.items():
+            for layer_param in L_layer_params:
+                # Test if those two variables are the same theano shared variable.
+                # A lot of them have the same name, but we're looking
+                # for the same object.
+                if layer_param == query_param:
+
+                    # Now we know that we're in the right L_layer_params.
+                    # Start the search again, but this time by trying to match the name.
+                    for candidate in L_layer_params:
+                        if candidate.name == momentum_param_name:
+                            return candidate
+
+                    # Failure to find an associated momentum variable.
+                    # We got to the right layer, but we just didn't find
+                    # what we wanted.
+                    return None
+
+        # Failure to find the query_param. This is an indicator that there is a bug somewhere.
+        # This should not happen.
+        raise Error("Failure to find the query_param. This is an indicator that there is a bug somewhere.")
+
+
+    def get_updates_with_carried_momentum(self, loss, all_params, learning_rate, momentum=0.9):
+
+        momentum_name_suffix = "_momentum"
+
+        all_grads = theano.grad(loss, all_params)
+        updates = []
+        
+        for param_i, grad_i in zip(all_params, all_grads):
+
+            momentum_param_i = self.find_associated_momentum_shared_variable(param_i, momentum_name_suffix)
+            
+            v = momentum * momentum_param_i - learning_rate * grad_i
+            updates.append((momentum_param_i, v))
+            updates.append((param_i, param_i + v))
+
+        return updates
 
 
 

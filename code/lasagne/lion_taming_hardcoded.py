@@ -27,13 +27,26 @@ def gen_cmdlines_split(nbr_of_splits, seed, exptag, t):
 def gen_cmdlines_train(nbr_of_splits, exptag, t, learning_rate):
 
     #learning_rate = 0.001
-    momentum = 0.8
+
+    # exp06
+    #momentum = 0.95
+    # exp07
+    momentum = 0.95
+
     batch_size = 128
     #num_epochs = 32
     #num_epochs = 100
-    num_epochs = 200
-    momentum_flavor = "nesterov_momentum"
-    weight_decay_factor = 0.00001
+    num_epochs = 8
+    #momentum_flavor = "nesterov_momentum"
+    momentum_flavor = "voltron_carry_momentum"
+    #weight_decay_factor = 0.00001
+    weight_decay_factor = 0.0001
+
+    # exp06
+    #selected_output_to_follow = "maractus_params_hdf5_output_best_valid_loss"
+    # exp07
+    selected_output_to_follow = "maractus_params_hdf5_output_last"
+
 
     res = []
     for i in range(nbr_of_splits):
@@ -47,7 +60,7 @@ def gen_cmdlines_train(nbr_of_splits, exptag, t, learning_rate):
         --num_epochs=%d
         --maractus_config_json="specific_models/maractus_05_lion.json"
         --maractus_params_hdf5_input=/home/gyomalin/ML/tmp/%s/maractus_%s_%0.2d_lion_%d.hdf5
-        --maractus_params_hdf5_output_best_valid_loss="/home/gyomalin/ML/tmp/%s/maractus_%s_%0.2d_lion_%d.hdf5"
+        --%s="/home/gyomalin/ML/tmp/%s/maractus_%s_%0.2d_lion_%d.hdf5"
         --log_file=/home/gyomalin/ML/tmp/%s/maractus_%s_%0.2d_lion_%d_log.json
         """ % ( learning_rate,
                 momentum,
@@ -56,7 +69,7 @@ def gen_cmdlines_train(nbr_of_splits, exptag, t, learning_rate):
                 batch_size,
                 num_epochs,
                 exptag, exptag, t,   i,
-                exptag, exptag, t+1, i,
+                selected_output_to_follow, exptag, exptag, t+1, i,
                 exptag, exptag, t+1, i
             )
         res.append(cmd)
@@ -87,24 +100,33 @@ def gen_cmdlines_merge(nbr_of_splits, exptag, t):
 if __name__ == "__main__":
 
     nbr_of_splits = 2
-    exptag = "exp05"
+    #exptag = "exp05"
+    #exptag = "exp06"
+    exptag = "exp07"
     #import numpy as np
     #base_seed = np.random.randint(low=0, high=100000)
 
     base_seed = 10
     #learning_rate = 0.025
-    learning_rate = 0.005
+    learning_rate = 0.01
 
 
     #t = 8
 
     # maybe change learning rate ? mehhh, later on, after 16 ?
 
-    #L_t = range(1, 8)
-    #L_t = range(8, 16)
-    #L_t = range(16, 24)
-    #L_t = range(24, 32)
-    L_t = range(32, 48)
+    if exptag == "exp06":
+        #L_t = range(0, 8)
+        #L_t = range(8, 48)
+        #L_t = range(48, 128)
+        #L_t = range(128, 256)
+        L_t = range(256, 512)
+
+
+    elif exptag == "exp07":
+        #L_t = range(0, 128)
+        #L_t = range(128, 256)
+        L_t = range(256, 512)
 
 
     for t in L_t:

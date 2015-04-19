@@ -57,14 +57,15 @@ def load_data(random_patch_h, random_patch_w):
 
 
 
-def create_iter_functions(dataset, output_layer,
+def create_iter_functions(maractus,
+                          dataset, output_layer,
                           X_tensor_type,
                           batch_size,
                           learning_rate,
                           momentum,
                           momentum_flavor="momentum",
                           weight_decay_factor=0.0):
-    assert momentum_flavor in ["nesterov_momentum", "momentum", "adadelta"]
+    assert momentum_flavor in ["nesterov_momentum", "momentum", "adadelta", "voltron_carry_momentum"]
     assert 0.0 <= weight_decay_factor
     batch_index = T.iscalar('batch_index')
     X_batch = X_tensor_type('x')
@@ -95,8 +96,10 @@ def create_iter_functions(dataset, output_layer,
     else:
         weight_decay_term = 0.0
 
+    if momentum_flavor == "voltron_carry_momentum":
+        updates = maractus.get_updates_with_carried_momentum(loss_train + weight_decay_term, all_params, learning_rate, momentum)
 
-    if momentum_flavor == "nesterov_momentum":
+    elif momentum_flavor == "nesterov_momentum":
         updates = lasagne.updates.nesterov_momentum(loss_train + weight_decay_term, all_params, learning_rate, momentum)
 
     elif momentum_flavor == "momentum":
@@ -212,7 +215,7 @@ def run(learning_rate,
     deactivate_all_dropout = False
     print("Building model and compiling functions ...")
     output_layer = maractus.build_model(batch_size=batch_size, deactivate_all_dropout=deactivate_all_dropout)
-    iter_funcs = create_iter_functions(dataset, output_layer, X_tensor_type=theano.tensor.tensor4,
+    iter_funcs = create_iter_functions(maractus, dataset, output_layer, X_tensor_type=theano.tensor.tensor4,
                                        batch_size=batch_size, learning_rate=learning_rate, momentum=momentum, momentum_flavor=momentum_flavor,
                                        weight_decay_factor=weight_decay_factor)
 

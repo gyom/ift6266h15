@@ -56,6 +56,16 @@ def run(L_scale_factor_weights,
             grp_output.create_dataset('W', data=W * scale_factor_weights)
             grp_output.create_dataset('b', data=b * scale_factor_biases)
 
+            # It's not really necessary to scale the momentum too,
+            # but it seems like bad design to at least not copy them over.
+            # And while we're at it, we might as well scale them too.
+            if 'W_momentum' in grp_input.keys():
+                grp_output.create_dataset('W_momentum', data=np.copy(grp_input['W_momentum']) * scale_factor_weights)
+
+            if 'b_momentum' in grp_input.keys():
+                grp_output.create_dataset('b_momentum', data=np.copy(grp_input['b_momentum']) * scale_factor_biases)
+
+
         h5file_input.close()
         h5file_output.close()
 

@@ -66,6 +66,9 @@ def run(nbr_of_splits,
                 group = h5file_input[layer_name]
                 W = np.copy(group['W'])
                 b = np.copy(group['b'])
+                W_momentum = np.copy(group['W_momentum']) if 'W_momentum' in group.keys() else None
+                b_momentum = np.copy(group['b_momentum']) if 'b_momentum' in group.keys() else None
+
 
                 (dim_out, dim_in, h, w) = W.shape
 
@@ -80,6 +83,9 @@ def run(nbr_of_splits,
 
                 W_sub = W[indices_out,:,:,:][:,indices_in,:,:]
                 b_sub = b[indices_out,:,:]
+                W_momentum_sub = W_momentum[indices_out,:,:,:][:,indices_in,:,:] if (W_momentum is not None) else None
+                b_momentum_sub = b_momentum[indices_out,:,:] if (b_momentum is not None) else None
+
 
             elif layer_name in L_dense_layer_name:
 
@@ -87,6 +93,8 @@ def run(nbr_of_splits,
                 group = h5file_input[layer_name]
                 W = np.copy(group['W'])
                 b = np.copy(group['b'])
+                W_momentum = np.copy(group['W_momentum']) if 'W_momentum' in group.keys() else None
+                b_momentum = np.copy(group['b_momentum']) if 'b_momentum' in group.keys() else None
 
                 # warning : the dimensions are NOT in the same order as
                 # in the case for the filters in the Conv2DLayer
@@ -104,10 +112,18 @@ def run(nbr_of_splits,
 
                 W_sub = W[:,indices_out][indices_in,:]
                 b_sub = b[indices_out]
+                W_momentum_sub = W_momentum[:,indices_out][indices_in,:] if (W_momentum is not None) else None
+                b_momentum_sub = b_momentum[indices_out] if (b_momentum is not None) else None
+
 
             grp = h5file_output.create_group(layer_name)
             grp.create_dataset('W', data=W_sub)
             grp.create_dataset('b', data=b_sub)
+            if W_momentum_sub is not None:
+                grp.create_dataset('W_momentum', data=W_momentum_sub)
+            if b_momentum_sub is not None:
+                grp.create_dataset('b_momentum', data=b_momentum_sub)
+
             # Add information about the indices used in those intermediate steps.
             grp.create_dataset('indices_out', data=indices_out)
             grp.create_dataset('indices_in', data=indices_in)

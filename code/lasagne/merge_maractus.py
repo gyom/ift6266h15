@@ -45,6 +45,10 @@ def run(maractus_params_hdf5_voltron_mutable,
             voltron_W = np.copy(voltron_group['W'])
             voltron_b = np.copy(voltron_group['b'])
 
+            voltron_W_momentum = np.copy(voltron_group['W_momentum']) if 'W_momentum' in voltron_group.keys() else None
+            voltron_b_momentum = np.copy(voltron_group['b_momentum']) if 'b_momentum' in voltron_group.keys() else None
+
+
             # If everything is properly done during the splits,
             # each lion should different subset of weights/biases.
             # Some indices are not touched, but there is no intersection
@@ -56,9 +60,17 @@ def run(maractus_params_hdf5_voltron_mutable,
                 lion_W = np.copy(lion_group['W'])
                 lion_b = np.copy(lion_group['b'])
 
+                lion_W_momentum = np.copy(lion_group['W_momentum']) if 'W_momentum' in lion_group.keys() else None
+                lion_b_momentum = np.copy(lion_group['b_momentum']) if 'b_momentum' in lion_group.keys() else None
+
                 # minor type difference, but the data should match
                 assert np.all(np.array(lion_group['original_W_shape'], dtype=np.intc) == voltron_W.shape)
                 assert np.all(np.array(lion_group['original_b_shape'], dtype=np.intc) == voltron_b.shape)
+                if lion_W_momentum is not None:
+                    assert np.all(np.array(lion_group['original_W_shape'], dtype=np.intc) == voltron_W_momentum.shape)
+                if lion_b_momentum is not None:
+                    assert np.all(np.array(lion_group['original_b_shape'], dtype=np.intc) == voltron_b_momentum.shape)
+
 
                 indices_in  = np.array(lion_group['indices_in']).astype(np.intc)
                 indices_out = np.array(lion_group['indices_out']).astype(np.intc)
@@ -70,6 +82,12 @@ def run(maractus_params_hdf5_voltron_mutable,
 
                     voltron_W[indices_out.reshape((-1,1)), indices_in.reshape((1,-1)), :, :] = lion_W
                     voltron_b[indices_out, :, :] = lion_b
+                    # emulate everything done to W and b, but with W_momentum and b_momentum instead
+                    if (voltron_W_momentum is not None) and (lion_W_momentum is not None):
+                        voltron_W_momentum[indices_out.reshape((-1,1)), indices_in.reshape((1,-1)), :, :] = lion_W_momentum
+                    if (voltron_b_momentum is not None) and (lion_b_momentum is not None):
+                        voltron_b_momentum[indices_out, :, :] = lion_b_momentum
+
 
                 elif layer_name in L_dense_layer_name:
 
@@ -79,12 +97,22 @@ def run(maractus_params_hdf5_voltron_mutable,
                     voltron_W[indices_in.reshape((-1,1)), indices_out.reshape((1,-1))] = lion_W
                     voltron_b[indices_out] = lion_b
 
+                    if (voltron_W_momentum is not None) and (lion_W_momentum is not None):
+                        voltron_W_momentum[indices_in.reshape((-1,1)), indices_out.reshape((1,-1))] = lion_W_momentum
+                    if (voltron_b_momentum is not None) and (lion_b_momentum is not None):
+                        voltron_b_momentum[indices_out] = lion_b_momentum
+
+
                 # mutate that layer
                 #voltron_group.create_dataset('W', data=voltron_W)
                 #voltron_group.create_dataset('b', data=voltron_b)
                 voltron_group['W'][:] = voltron_W[:]
                 voltron_group['b'][:] = voltron_b[:]
 
+                if (voltron_W_momentum is not None):
+                    voltron_group['W_momentum'][:] = voltron_W_momentum[:]
+                if (voltron_b_momentum is not None):
+                    voltron_group['b_momentum'][:] = voltron_b_momentum[:]
 
         h5file_voltron.close()
         for h5file_lion in L_h5file_lion:
